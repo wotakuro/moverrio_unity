@@ -1,0 +1,109 @@
+﻿using UnityEngine;
+using System.Collections;
+
+/// @brief モベリオの3Dカメラ用
+/// memo 0.5
+public class MoverioCamera3d : MonoBehaviour {
+
+  /// カメラ間の距離（左右でどのくらい距離とる？）
+  public float cameraDistance = 0.2f;
+  /// 一つ前のカメラのディスタンス覚えておく
+  private float cameraDistOld = -0.1f;
+
+  /// 左カメラ
+  private Camera lCam;
+  /// 右カメラ
+  private Camera rCam;
+  /// 左のボード
+  private Transform lBoard;
+  /// 右のボード
+  private Transform rBoard;
+
+  /// デバッグ用に古いマウス位置を覚えておきます
+  private Vector3 mouseOldPos;
+
+  // Use this for initialization
+  void Start () {
+    Transform lCamTrans = transform.Find("l_camera"); 
+    Transform rCamTrans = transform.Find("r_camera");
+    this.rCam = rCamTrans.GetComponent<Camera>();
+    this.lCam = lCamTrans.GetComponent<Camera>();
+
+    this.lBoard = lCamTrans.Find("board");
+    this.rBoard = rCamTrans.Find("board");
+
+    this.lBoard.renderer.material.renderQueue = 10000;
+    this.rBoard.renderer.material.renderQueue = 10000;
+    //  アスペクト比を通常に
+    lCam.aspect = lCam.aspect * 2.0f;
+    rCam.aspect = rCam.aspect * 2.0f;
+
+    
+#if !UNITY_EDITOR &&(UNITY_IPHONE  ||  UNITY_ANDROID)
+    // ジャイロの有効か
+    Input.gyro.enabled = true;
+    // 3dMode
+    MoverioUtil.setDisplayMode(  MoverioUtil.DISPLAY_MODE_3D );
+#endif
+  }
+
+  void OnApplicationPause(bool pState){
+#if !UNITY_EDITOR &&(UNITY_IPHONE  ||  UNITY_ANDROID)
+    if(pState){
+      MoverioUtil.setDisplayMode(  MoverioUtil.DISPLAY_MODE_2D );
+    }else{
+      MoverioUtil.setDisplayMode(  MoverioUtil.DISPLAY_MODE_3D );
+    }
+#endif
+  }
+  
+  // Update is called once per frame
+  void Update () {
+    if( this.cameraDistance != this.cameraDistOld ){
+      if( this.cameraDistance < 0.0f ){
+        this.cameraDistance = 0.0f;
+      }
+      lCam.transform.localPosition = new Vector3( -this.cameraDistance * 0.5f , 0.0f , 0.0f );
+      rCam.transform.localPosition = new Vector3( this.cameraDistance  * 0.5f , 0.0f , 0.0f );
+      this.cameraDistOld = this.cameraDistance;
+    }
+    this.gyroUpdate();
+  }
+
+  /// @brief ジャイロの更新
+  private void gyroUpdate(){
+    
+#if !UNITY_EDITOR &&(UNITY_IPHONE  ||  UNITY_ANDROID)
+    
+    //モバイル端末での動作（前回書いたコード）
+    Quaternion gyro = Input.gyro.attitude;
+    
+    gyro.x = -gyro.x;
+    gyro.y = -gyro.y;
+
+    
+    Quaternion rotation = Quaternion.Euler(0, 0, 180) * Quaternion.Euler(-90, 90, 0);
+    transform.rotation = rotation * gyro;
+    //transform.rotation = gyro;
+#else
+    
+    if( Input.GetMouseButtonDown(0) ){
+      mouseOldPos = Input.mousePosition;
+    }else if( Input.GetMouseButton(0) ){
+      Vector3 delta = Input.mousePosition - mouseOldPos;
+      delta *= 0.1f;
+      transform.Rotate( new Vector3(-delta.y , delta.x , delta.z) );
+      
+      mouseOldPos = Input.mousePosition;
+    }
+#endif
+    
+  }
+
+
+  /*
+  void OnGUI(){
+    GUI.Label(new Rect(10, 10, 300, 50), "Val " + this.cameraDistance);
+  }
+    */
+}
