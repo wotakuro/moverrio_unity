@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class TitleTap : MonoBehaviour
+public class WatchColorChange : MonoBehaviour
 {
    private Material mat;
 
